@@ -7,39 +7,44 @@
 //
 
 import UIKit
+import ExternalAccessory
 
 class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
-        let thread = Thread(target:self, selector:#selector(start), object:nil)
+        // Dodatkowa konfiguracja po załadowaniu widoku.
+        let thread = Thread(target: self, selector: #selector(start), object: nil)
         thread.start()
     }
     
-    func start(){
+    @objc func start() {
         EAAccessoryManager.shared().registerForLocalNotifications()
         
         let bluetoothPrinters = EAAccessoryManager.shared().connectedAccessories
-        let printer = bluetoothPrinters.first
+        guard let printer = bluetoothPrinters.first else {
+            print("No printers connected")
+            return
+        }
         
-        autoreleasepool{
-            let connection:MfiBtPrinterConnection = MfiBtPrinterConnection(serialNumber: printer?.serialNumber)
+        autoreleasepool {
+            guard let connection = MfiBtPrinterConnection(serialNumber: printer.serialNumber) else {
+                    print("Failed to create printer connection")
+                    return
+                }
             
             let open = connection.open()
-            if(open)//connection.isConnected())
-            {
+            if open {
                 do {
-                    //    try SGD.SET("bluetooth.page_scan_window", withValue: "60", andWithPrinterConnection: connection)
-                    let  printer   =  try ZebraPrinterFactory.getInstance(connection)
-                    let lang =  printer.getControlLanguage()
+                    let printer = try ZebraPrinterFactory.getInstance(connection)
+                    let lang = printer.getControlLanguage()
                     
-                    if(lang != PRINTER_LANGUAGE_CPCL){
+                    if lang != PRINTER_LANGUAGE_CPCL {
                         let tool = printer.getToolsUtil()
-                        try  tool?.sendCommand("^XA^FO17,16^GB379,371,8^FS^FT65,255^A0N,135,134^FDMEMO^FS^XZ")
+                        try tool?.sendCommand("^XA^FO17,16^GB379,371,8^FS^FT65,255^A0N,135,134^FDMEMO^FS^XZ")
                     }
                 } catch {
-                    print(error)
+                    print("Error: \(error)")
                 }
                 connection.close()
             }
@@ -48,9 +53,6 @@ class ViewController: UIViewController {
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+        // Usuń zasoby, które mogą być odtworzone.
     }
-    
-    
 }
-
