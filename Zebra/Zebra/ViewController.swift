@@ -13,7 +13,7 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Dodatkowa konfiguracja po załadowaniu widoku.
+        // Additional configuration after loading the view.
         let thread = Thread(target: self, selector: #selector(start), object: nil)
         thread.start()
     }
@@ -53,6 +53,6 @@ class ViewController: UIViewController {
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Usuń zasoby, które mogą być odtworzone.
+        // Remove resources that can be recreated.
     }
 }
