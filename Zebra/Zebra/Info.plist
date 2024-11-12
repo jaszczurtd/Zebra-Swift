@@ -38,5 +38,7 @@
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array/>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Ta aplikacja wymaga dostępu do Bluetooth, aby poprawnie działać.</string>
 </dict>
 </plist>

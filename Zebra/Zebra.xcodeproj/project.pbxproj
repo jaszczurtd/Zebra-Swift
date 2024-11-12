@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		81B636122CE3A3A800109294 /* CDVInvokedUrlCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B636112CE3A3A800109294 /* CDVInvokedUrlCommand.swift */; };
+		81B636142CE3ABA200109294 /* ZebraPluginBtPrint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B636132CE3ABA200109294 /* ZebraPluginBtPrint.swift */; };
+		81B636162CE3ACF200109294 /* CDVPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B636152CE3ACF200109294 /* CDVPlugin.swift */; };
+		81B636182CE3B35E00109294 /* CDVPluginResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B636172CE3B35E00109294 /* CDVPluginResult.swift */; };
 		BBC3306B1EB68C88009D17AD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBC3306A1EB68C88009D17AD /* AppDelegate.swift */; };
 		BBC3306D1EB68C88009D17AD /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBC3306C1EB68C88009D17AD /* ViewController.swift */; };
 		BBC330701EB68C88009D17AD /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BBC3306E1EB68C88009D17AD /* Main.storyboard */; };
@@ -60,6 +64,10 @@
 		816AAE062C99A44600FBDD83 /* GraphicsUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphicsUtil.h; sourceTree = "<group>"; };
 		816AAE072C99A44700FBDD83 /* SGD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SGD.h; sourceTree = "<group>"; };
 		816AAE082C99A44700FBDD83 /* DiscoveredPrinter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DiscoveredPrinter.h; sourceTree = "<group>"; };
+		81B636112CE3A3A800109294 /* CDVInvokedUrlCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDVInvokedUrlCommand.swift; sourceTree = "<group>"; };
+		81B636132CE3ABA200109294 /* ZebraPluginBtPrint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZebraPluginBtPrint.swift; sourceTree = "<group>"; };
+		81B636152CE3ACF200109294 /* CDVPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDVPlugin.swift; sourceTree = "<group>"; };
+		81B636172CE3B35E00109294 /* CDVPluginResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDVPluginResult.swift; sourceTree = "<group>"; };
 		BB0268CD1EB797F600955223 /* Zebra-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Zebra-Bridging-Header.h"; sourceTree = "<group>"; };
 		BBC330671EB68C88009D17AD /* Zebra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Zebra.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBC3306A1EB68C88009D17AD /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -173,6 +181,10 @@
 				BBC330711EB68C88009D17AD /* Assets.xcassets */,
 				BBC330731EB68C88009D17AD /* LaunchScreen.storyboard */,
 				BBC330761EB68C88009D17AD /* Info.plist */,
+				81B636112CE3A3A800109294 /* CDVInvokedUrlCommand.swift */,
+				81B636132CE3ABA200109294 /* ZebraPluginBtPrint.swift */,
+				81B636152CE3ACF200109294 /* CDVPlugin.swift */,
+				81B636172CE3B35E00109294 /* CDVPluginResult.swift */,
 			);
 			path = Zebra;
 			sourceTree = "<group>";
@@ -350,8 +362,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				81B636122CE3A3A800109294 /* CDVInvokedUrlCommand.swift in Sources */,
+				81B636142CE3ABA200109294 /* ZebraPluginBtPrint.swift in Sources */,
 				BBC3306D1EB68C88009D17AD /* ViewController.swift in Sources */,
 				BBC3306B1EB68C88009D17AD /* AppDelegate.swift in Sources */,
+				81B636162CE3ACF200109294 /* CDVPlugin.swift in Sources */,
+				81B636182CE3B35E00109294 /* CDVPluginResult.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -528,7 +544,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_ARC = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = K9GZKK2642;
 				ENABLE_BITCODE = NO;
 				HEADER_SEARCH_PATHS = /Applications/link_os_sdk/iOS/v1.4.957/lib/include;
 				INFOPLIST_FILE = Zebra/Info.plist;
@@ -555,7 +571,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_ARC = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = K9GZKK2642;
 				ENABLE_BITCODE = NO;
 				HEADER_SEARCH_PATHS = /Applications/link_os_sdk/iOS/v1.4.957/lib/include;
 				INFOPLIST_FILE = Zebra/Info.plist;

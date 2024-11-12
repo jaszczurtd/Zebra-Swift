@@ -8,47 +8,44 @@
 
 import UIKit
 import ExternalAccessory
+import Foundation
+import CoreBluetooth
+import UIKit
 
 class ViewController: UIViewController {
+    
+    var plugin : ZebraPluginBtPrint?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Additional configuration after loading the view.
-        let thread = Thread(target: self, selector: #selector(start), object: nil)
-        thread.start()
+        
+        plugin = ZebraPluginBtPrint(viewController: self)
+        
+        NSLog("starting...")
+        
+        //testInitialize(delay: 5, wildcard: "*", printerName: "ZQ610-A", cancelButtonName: "Poniechaj")
+        
+        testPrint(mac: "ZQ610-B", data: "^XA^FO17,16^GB379,371,8^FS^FT65,255^A0N,135,134^FDaa^FS^XZ", caseValue: 1)
+        
+        testStatus()
+        
+        NSLog("done")
     }
     
-    @objc func start() {
-        EAAccessoryManager.shared().registerForLocalNotifications()
-        
-        let bluetoothPrinters = EAAccessoryManager.shared().connectedAccessories
-        guard let printer = bluetoothPrinters.first else {
-            print("No printers connected")
-            return
-        }
-        
-        autoreleasepool {
-            guard let connection = MfiBtPrinterConnection(serialNumber: printer.serialNumber) else {
-                    print("Failed to create printer connection")
-                    return
-                }
-            
-            let open = connection.open()
-            if open {
-                do {
-                    let printer = try ZebraPrinterFactory.getInstance(connection)
-                    let lang = printer.getControlLanguage()
-                    
-                    if lang != PRINTER_LANGUAGE_CPCL {
-                        let tool = printer.getToolsUtil()
-                        try tool?.sendCommand("^XA^FO17,16^GB379,371,8^FS^FT65,255^A0N,135,134^FDMEMO^FS^XZ")
-                    }
-                } catch {
-                    print("Error: \(error)")
-                }
-                connection.close()
-            }
-        }
+    func testInitialize(delay: Int, wildcard: String, printerName: String, cancelButtonName: String) {
+        let command = CDVInvokedUrlCommand(arguments: [delay, wildcard, printerName, cancelButtonName], methodName: "initialize")
+        plugin?.initialize(command)
+    }
+    
+    func testPrint(mac: String, data: String, caseValue: Int) {
+        let command = CDVInvokedUrlCommand(arguments: [mac, data, caseValue], methodName: "print")
+        plugin?.print(command)
+    }
+    
+    func testStatus() {
+        let command = CDVInvokedUrlCommand(arguments: [], methodName: "status")
+        plugin?.status(command)
     }
     
     override func didReceiveMemoryWarning() {
