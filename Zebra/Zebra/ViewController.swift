@@ -24,17 +24,17 @@ class ViewController: UIViewController {
         
         NSLog("starting...")
         
-        //testInitialize(delay: 5, wildcard: "*", printerName: "ZQ610-A", cancelButtonName: "Poniechaj")
+        //testInitialize(delay: 15000, wildcard: "*", printerName: "ZQ610-A", cancelButtonName: "Poniechaj", howLong: 30)
         
-        testPrint(mac: "ZQ610-B", data: "^XA^FO17,16^GB379,371,8^FS^FT65,255^A0N,135,134^FDaa^FS^XZ", caseValue: 1)
+        testPrint(mac: "ZQ610-A", data: "^XA^FO17,16^GB379,371,8^FS^FT65,255^A0N,135,134^FDaa^FS^XZ", caseValue: 1)
         
         testStatus()
         
         NSLog("done")
     }
     
-    func testInitialize(delay: Int, wildcard: String, printerName: String, cancelButtonName: String) {
-        let command = CDVInvokedUrlCommand(arguments: [delay, wildcard, printerName, cancelButtonName], methodName: "initialize")
+    func testInitialize(delay: Int, wildcard: String, printerName: String, cancelButtonName: String, howLong: Int) {
+        let command = CDVInvokedUrlCommand(arguments: [delay, wildcard, printerName, cancelButtonName, howLong], methodName: "initialize")
         plugin?.initialize(command)
     }
     
