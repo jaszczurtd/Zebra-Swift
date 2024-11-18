@@ -197,9 +197,11 @@ class ZebraPluginBtPrint: CDVPlugin {
         }
         savedData = data
         
+        NSLog("printer is connected: \(isConnected)")
+        
         var msg = "Printer \(printerName) is not connected"
         
-        if !self.isConnected {
+        if !isConnected {
             self.printerName = printerName
             
             findConnectedPrinter { [weak self] bool in
@@ -208,6 +210,7 @@ class ZebraPluginBtPrint: CDVPlugin {
                     if !strongSelf.isConnected {
                         
                         DispatchQueue.main.async {
+                            strongSelf.startScanning()
                             strongSelf.showDeviceSelectionModal()
                         }
                     } else {
@@ -243,9 +246,6 @@ class ZebraPluginBtPrint: CDVPlugin {
         var printError: Error?
         
         NSLog("data to print: \(data)")
-        
-        printerConnection?.close()
-        printerConnection?.open()
         
         do {
             let printer = try ZebraPrinterFactory.getInstance(printerConnection)
@@ -329,7 +329,6 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
         switch central.state {
         case .poweredOn:
             NSLog("Bluetooth on")
-            startScanning()
         case .poweredOff:
             setPluginAsDisconnected()
             showAlert("Bluetooth is powered off.")
@@ -421,8 +420,6 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
         func checkBluetoothPeriodically() {
             if currentBTState == .poweredOn {
                 
-                centralManager.scanForPeripherals(withServices: nil, options: nil)
-
                 NSLog("BT is enabled, returning success")
                 completion(true)
                 return
@@ -472,7 +469,7 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
 
     
     func connectToPeripheral(_ peripheral:CBPeripheral){
-        NSLog("Connessione per Nome")
+        NSLog("Connessione per Nome: \(peripheral)")
         connectedPeripheral = peripheral
         centralManager.stopScan()
         centralManager.connect(peripheral, options: nil)
