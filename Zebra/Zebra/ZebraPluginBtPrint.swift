@@ -520,10 +520,13 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
         NSLog("Found \(characteristics.count) characteristics for service: \(service.uuid)")
 
         for characteristic in characteristics {
-            if characteristic.properties.contains(.write) {
+            if characteristic.properties.contains(.write) || characteristic.properties.contains(.writeWithoutResponse) {
                 if let data = self.savedData {
                     let dataToPrint = Data(data.utf8)
-                    peripheral.writeValue(dataToPrint, for: characteristic, type: .withResponse)
+                    
+                    let writeType: CBCharacteristicWriteType = characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
+                                    
+                    peripheral.writeValue(dataToPrint, for: characteristic, type: writeType)
                     NSLog("Data written to characteristic: \(characteristic.uuid)")
                 }
             }
