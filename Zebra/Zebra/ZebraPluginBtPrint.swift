@@ -21,6 +21,7 @@ class ZebraPluginBtPrint: CDVPlugin {
     var cancelText: String = "Cancel"
     var howLongScanning: TimeInterval = 20
     var delayTime: Int = 0
+    var howLongKeepPrinterConnection: Double = 10.0
     
     @objc private func connectToPrinter( completion: (Bool) -> Void) {
         guard let serial = serialNumber else {
@@ -98,11 +99,12 @@ class ZebraPluginBtPrint: CDVPlugin {
             waitForMilliseconds(milliseconds: self.delayTime) {
                 NSLog("BT timeout \(self.delayTime) has been reached - disconnecting Bluetooth")
                 
+                self.setPluginAsDisconnected()
+                
                 if self.centralManager != nil {
                     if self.centralManager.isScanning {
                         self.centralManager.stopScan()
                         self.centralManager = nil
-                        self.setPluginAsDisconnected()
                         NSLog("Bluetooth scanning stopped.")
                     }
                 }
@@ -147,6 +149,7 @@ class ZebraPluginBtPrint: CDVPlugin {
     
     @objc func print(_ command: CDVInvokedUrlCommand) {
         initializeBluetooth(timeout: howLongScanning) { result in
+            self.startScanning()
             if result {
                 DispatchQueue.global(qos: .userInitiated).async {
                     self.printPreparations(object: command)
@@ -268,6 +271,14 @@ class ZebraPluginBtPrint: CDVPlugin {
             printError = error
         }
         
+        DispatchQueue.global().asyncAfter(deadline: .now() + howLongKeepPrinterConnection) { [weak self] in
+            guard let strongSelf = self else { return }
+            
+            strongSelf.printerConnection?.close()
+            strongSelf.setPluginAsDisconnected()
+            NSLog("Connection closed after delay to allow for data processing.")
+        }
+ 
         if let error = printError {
             NSLog("error: \(error.localizedDescription)")
             pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error.localizedDescription)
@@ -323,6 +334,11 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
     /// ----------------------- BLUETOOTH MANAGEMENT -----------------------
 
     func startScanning() {
+        
+        if centralManager.isScanning {
+            NSLog("Bluetooth scanning is already in progress.")
+            return
+        }
         if let manager = centralManager, manager.state == .poweredOn {
             manager.scanForPeripherals(withServices: nil, options: nil)
         } else {
@@ -371,21 +387,26 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
         NSLog("BT device found: \(peripheral.identifier.uuidString ) \(peripheral.name ?? "")")
     }
     
+    func reconnectToPeripheral() {
+        if let peripheral = connectedPeripheral {
+            centralManager.connect(peripheral, options: nil)
+            NSLog("Reconnecting to previously connected peripheral: \(peripheral.name ?? "unknown")")
+        } else {
+            NSLog("No previously connected peripheral found. Starting a new scan.")
+            startScanning()
+        }
+    }
+    
     // Disconnect from peripheral
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         
-        guard let pname = peripheral.name else {
-            NSLog("invalid disconnection")
-            return
-        }
-
-        NSLog("Disconnected from printer: \(pname)")
-        setPluginAsDisconnected()
+        NSLog("Disconnected from peripheral: \(peripheral.name ?? "unknown"), Error: \(error?.localizedDescription ?? "none")")
+        reconnectToPeripheral()
     }
     
     func setPluginAsDisconnected() {
-        connectedPeripheral = nil
         isConnected = false
+        printerConnection = nil
     }
     
     
