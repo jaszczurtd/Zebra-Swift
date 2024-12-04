@@ -108,7 +108,7 @@ class ZebraPluginBtPrint: CDVPlugin {
             deb("delayTime: \(self.delayTime)")
             
             waitForMilliseconds(milliseconds: self.delayTime) {
-                deb("BT timeout \(self.delayTime) has been reached - disconnecting Bluetooth")
+                self.deb("BT timeout \(self.delayTime) has been reached - disconnecting Bluetooth")
                 
                 self.setPluginAsDisconnected()
                 
@@ -116,7 +116,7 @@ class ZebraPluginBtPrint: CDVPlugin {
                     if self.centralManager.isScanning {
                         self.centralManager.stopScan()
                         self.centralManager = nil
-                        deb("Bluetooth scanning stopped.")
+                        self.deb("Bluetooth scanning stopped.")
                     }
                 }
             }
@@ -148,7 +148,7 @@ class ZebraPluginBtPrint: CDVPlugin {
         deb("How long scanning: \(howLongScanning)")
     
         initializeBluetooth(timeout: howLongScanning) { bool in
-            deb("Bluetooth enabled: \(bool)")
+            self.deb("Bluetooth enabled: \(bool)")
             
             self.findConnectedPrinter { [weak self] result in
                 if let strongSelf = self {
@@ -167,7 +167,7 @@ class ZebraPluginBtPrint: CDVPlugin {
                     }
                     return
                 }
-                deb("selected printer name: \(printerName)")
+                self.deb("selected printer name: \(printerName)")
                 self.printerName = printerName
                 
                 guard let data = command.arguments[1] as? String else {
@@ -220,13 +220,13 @@ class ZebraPluginBtPrint: CDVPlugin {
             findConnectedPrinter { [weak self] bool in
                 if let strongSelf = self {
                     strongSelf.isConnected = bool
-                    deb("Second attempt of checking if printer is connected: \(strongSelf.isConnected)")
+                    strongSelf.deb("Second attempt of checking if printer is connected: \(strongSelf.isConnected)")
                     
                     if !strongSelf.isConnected {
                         
                         DispatchQueue.main.async {
                             strongSelf.initializeBluetooth(timeout: strongSelf.howLongScanning) { result in
-                                deb("Bluetooth enabled: \(result)")
+                                strongSelf.deb("Bluetooth enabled: \(result)")
 
                                 if result {
                                     strongSelf.startScanning()
@@ -234,7 +234,7 @@ class ZebraPluginBtPrint: CDVPlugin {
                             }
                         }
                     } else {
-                        deb("invoke from findConnectedPrinter")
+                        strongSelf.deb("invoke from findConnectedPrinter")
                         pluginResult = strongSelf.justPrint(strongSelf.savedData)
                         DispatchQueue.main.async {
                             strongSelf.commandDelegate!.send(pluginResult, callbackId: object.callbackId)
@@ -289,7 +289,7 @@ class ZebraPluginBtPrint: CDVPlugin {
             
             strongSelf.printerConnection?.close()
             strongSelf.setPluginAsDisconnected()
-            deb("Connection closed after delay to allow for data processing.")
+            strongSelf.deb("Connection closed after delay to allow for data processing.")
         }
  
         if let error = printError {
