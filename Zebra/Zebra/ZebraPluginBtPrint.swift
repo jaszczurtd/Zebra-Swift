@@ -13,6 +13,7 @@ class ZebraPluginBtPrint: CDVPlugin {
     var printerConnection: MfiBtPrinterConnection?
     private var centralManager: CBCentralManager!
     private var connectedPeripheral: CBPeripheral?
+    private var callbackID: String?
     
     var currentBTState: CBManagerState = .poweredOff
     var savedData: String?
@@ -158,6 +159,8 @@ class ZebraPluginBtPrint: CDVPlugin {
      }
     
     @objc func print(_ command: CDVInvokedUrlCommand) {
+        callbackID = command.callbackId
+        
         initializeBluetooth(timeout: howLongScanning) { result in
             if result {
                 
@@ -408,12 +411,20 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
 // 5. Print the data
 // 6. Return the result to the cordova plugin
 
+    private func sendErrorCallbackWith(message: String) {
+        deb(message)
+        var pluginResult : CDVPluginResult?
+        if let callbackId = self.callbackID {
+            pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: message)
+            self.commandDelegate!.send(pluginResult, callbackId: callbackId)
+        }
+    }
     
     // Connected to peripheral
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
 
         guard let deviceName = peripheral.name else {
-            deb("cannot get device name from connection")
+            sendErrorCallbackWith(message: "cannot get device name from connection")
             return
         }
         
@@ -425,19 +436,20 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
             peripheral.delegate = self
             peripheral.discoverServices(nil)
         } else {
-            deb("connected device \(deviceName) is not \(printerName ?? "(no name provided)")")
+            sendErrorCallbackWith(message: "connected device \(deviceName) is not \(printerName ?? "(no name provided)")")
         }
         
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        
         if let error = error {
-            deb("Error discovering services: \(error.localizedDescription)")
+            sendErrorCallbackWith(message: "Error discovering services: \(error.localizedDescription)")
             return
         }
         
         guard let services = peripheral.services else {
-            deb("No services on device \(peripheral.name ?? "unknown")")
+            sendErrorCallbackWith(message: "No services on device \(peripheral.name ?? "unknown")")
             return
         }
         
@@ -449,13 +461,16 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        
+        deb("current bluetooth connection status: \(currentBTState)")
+        
         if let error = error {
-            deb("Error discovering characteristics: \(error.localizedDescription)")
+            sendErrorCallbackWith(message: "Error discovering characteristics: \(error.localizedDescription)")
             return
         }
         
         guard let characteristics = service.characteristics else {
-            deb("No characteristics for service: \(service.uuid)")
+            sendErrorCallbackWith(message: "No characteristics for service: \(service.uuid)")
             return
         }
         
@@ -473,6 +488,11 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
                     
                     self.savedData = nil
                     
+                    if let callbackId = self.callbackID {
+                        var pluginResult = CDVPluginResult(status: CDVCommandStatus_OK)
+                        self.commandDelegate!.send(pluginResult, callbackId: callbackId)
+                    }
+
                     break
                 }
             }
