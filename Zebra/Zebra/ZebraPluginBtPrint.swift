@@ -13,7 +13,6 @@ class ZebraPluginBtPrint: CDVPlugin {
     var printerConnection: MfiBtPrinterConnection?
     private var centralManager: CBCentralManager!
     private var connectedPeripheral: CBPeripheral?
-    var alertController: UIAlertController?
     
     var currentBTState: CBManagerState = .poweredOff
     var savedData: String?
@@ -24,7 +23,7 @@ class ZebraPluginBtPrint: CDVPlugin {
     var howLongKeepPrinterConnection: Double = 10.0
     
     private func deb(_ data: String) {
-        NSLog("BT_PRINT_DEBUG:" + data)
+        NSLog("BT_PRINT_DBG: " + data)
     }
     
     @objc private func connectToPrinter( completion: (Bool) -> Void) {
@@ -398,7 +397,11 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
         
         // Autoconnect if printerName are available
         if let name = peripheral.name?.lowercased(), self.printerName != nil, name == self.printerName?.lowercased() {
-            connectToPeripheral(peripheral)
+            
+            deb("Making connection to: \(peripheral)")
+            connectedPeripheral = peripheral
+            centralManager.stopScan()
+            centralManager.connect(peripheral, options: nil)
             return
         }
     }
@@ -423,21 +426,6 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
     func setPluginAsDisconnected() {
         isConnected = false
         printerConnection = nil
-    }
-    
-    
-    /// ----------------------- DIALOG MANAGEMENT -----------------------
-    
-    func showDeviceSelectionModal() {
-        
-        alertController = UIAlertController(title: "Select a device", message: "Select a ZQ610 Zebra printer", preferredStyle: .actionSheet)
-        
-        let cancelAction = UIAlertAction(title: self.cancelText, style: .cancel) { _ in
-            self.alertController = nil // Resetta il riferimento quando l'alert viene chiuso
-        }
-        alertController?.addAction(cancelAction)
-        
-        self.viewController.present(alertController!, animated: true, completion: nil)
     }
     
     func initializeBluetooth(timeout: TimeInterval, completion: @escaping (Bool) -> Void) {
@@ -475,13 +463,6 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
 // 5. Print the data
 // 6. Return the result to the cordova plugin
 
-    
-    func connectToPeripheral(_ peripheral:CBPeripheral){
-        deb("Making connection to: \(peripheral)")
-        connectedPeripheral = peripheral
-        centralManager.stopScan()
-        centralManager.connect(peripheral, options: nil)
-    }
     
     // Connected to peripheral
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -544,6 +525,12 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
                                     
                     peripheral.writeValue(dataToPrint, for: characteristic, type: writeType)
                     deb("Data written to characteristic: \(characteristic.uuid)")
+                    
+                    self.printerName = nil
+                    self.savedData = nil
+                    
+                    break
+
                 } else {
                     deb("no print data!")
                 }
