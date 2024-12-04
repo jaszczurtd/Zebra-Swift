@@ -27,13 +27,14 @@ class ViewController: UIViewController {
         //testInitialize(delay: 15000, wildcard: "*", printerName: "ZQ610-A", cancelButtonName: "Poniechaj", howLong: 30)
         
         testPrint(mac: "ZQ610-A", data: "^XA^FO17,16^GB379,371,8^FS^FT65,255^A0N,135,134^FDaa^FS^XZ", caseValue: 1)
-        
+        /*
         DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
             self.testPrint(mac: "ZQ610-A", data: "^XA^FO17,16^GB379,371,8^FS^FT65,255^A0N,135,134^FDaa^FS^XZ", caseValue: 1)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
                     self.testPrint(mac: "ZQ610-A", data: "^XA^FO17,16^GB379,371,8^FS^FT65,255^A0N,135,134^FDaa^FS^XZ", caseValue: 1)
                 }
         }
+         */
         
         testStatus()
         
