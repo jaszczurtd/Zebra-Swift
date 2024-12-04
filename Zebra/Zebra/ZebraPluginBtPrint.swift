@@ -347,10 +347,10 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
 
     func startScanning() {
         
-        if centralManager.isScanning {
-            deb("Bluetooth scanning is already in progress.")
-            return
-        }
+        //if centralManager.isScanning {
+        //    deb("Bluetooth scanning is already in progress.")
+        //    return
+        //}
         if let manager = centralManager, manager.state == .poweredOn {
             deb("started scanning for peripherials")
             manager.scanForPeripherals(withServices: nil, options: nil)
@@ -388,8 +388,7 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
         // check for zq610 printer and update modal
 
         if let cp = connectedPeripheral {
-            deb("Reusing connection to: \(peripheral)")
-            cp.discoverServices(nil)
+            reconnectToPeripheral()
             return
         }
         
@@ -526,7 +525,6 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
                     peripheral.writeValue(dataToPrint, for: characteristic, type: writeType)
                     deb("Data written to characteristic: \(characteristic.uuid)")
                     
-                    self.printerName = nil
                     self.savedData = nil
                     
                     break
