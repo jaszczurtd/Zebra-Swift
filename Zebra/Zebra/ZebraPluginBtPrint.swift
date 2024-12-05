@@ -18,11 +18,16 @@ class ZebraPluginBtPrint: CDVPlugin {
     var currentBTState: CBManagerState = .poweredOff
     var savedData: String?
 
-    var cancelText: String = "Cancel"
+    let OK_msg = "ok"
+    var cancelText = "Cancel"
     var howLongScanning: TimeInterval = 30
     var delayTime: Int = 0
     var howLongKeepPrinterConnection: Double = 30.0
+    let printerNotFoundDelayTime: Double = 10.0
+    var printerFound: Bool = false
     
+    let BT_Error_Message = "Bluetooth is turned off. To connect to Bluetooth devices, turn on Bluetooth in the system settings."
+ 
     private func deb(_ data: String) {
         NSLog("BT_PRINT_DBG: " + data)
     }
@@ -160,13 +165,13 @@ class ZebraPluginBtPrint: CDVPlugin {
     
     @objc func print(_ command: CDVInvokedUrlCommand) {
         callbackID = command.callbackId
+        printerFound = false
         
         initializeBluetooth(timeout: howLongScanning) { result in
             if result {
-                
                 guard let printerName = command.arguments[0] as? String else {
                     DispatchQueue.main.async {
-                        self.showAlert("invalid printer name")
+                        self.sendErrorCallbackAndMessageWith(message: "invalid printer name")
                     }
                     return
                 }
@@ -175,7 +180,7 @@ class ZebraPluginBtPrint: CDVPlugin {
                 
                 guard let data = command.arguments[1] as? String else {
                     DispatchQueue.main.async {
-                        self.showAlert("invalid printer data")
+                        self.sendErrorCallbackAndMessageWith(message: "invalid printer data")
                     }
                     return
                 }
@@ -183,22 +188,16 @@ class ZebraPluginBtPrint: CDVPlugin {
 
                 self.findConnectedPrinter { [weak self] printerPaired in
                     if let strongSelf = self {
-
                         if printerPaired {
                             DispatchQueue.global(qos: .userInitiated).async {
-                                var pluginResult : CDVPluginResult?
-                                
                                 if strongSelf.printerName == printerName {
-                                    pluginResult = strongSelf.justPrint(strongSelf.savedData)
+                                    let pluginResult = strongSelf.justPrint(strongSelf.savedData)
                                     DispatchQueue.main.async {
-                                        strongSelf.commandDelegate!.send(pluginResult, callbackId: command.callbackId)
+                                        strongSelf.commandDelegate!.send(CDVPluginResult(status: pluginResult.1, messageAs: pluginResult.0), callbackId: command.callbackId)
                                     }
                                 } else {
                                     DispatchQueue.main.async {
-                                        let msg = "Wrong printer selected"
-                                        strongSelf.showAlert(msg)
-                                        pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: msg)
-                                        strongSelf.commandDelegate!.send(pluginResult, callbackId: command.callbackId)
+                                        strongSelf.sendErrorCallbackAndMessageWith(message: "Wrong printer selected")
                                     }
                                 }
                             }
@@ -208,14 +207,13 @@ class ZebraPluginBtPrint: CDVPlugin {
                     }
                 }
             } else {
-                self.showBTErrorMessage()
+                self.sendErrorCallbackAndMessageWith(message: self.BT_Error_Message)
             }
         }
     }
     
-    func justPrint(_ data: String?) -> CDVPluginResult? {
+    func justPrint(_ data: String?) -> (String, CDVCommandStatus) {
         
-        var pluginResult : CDVPluginResult?
         var printError: Error?
         
         deb("data to print: \(data ?? "no data!")")
@@ -246,13 +244,10 @@ class ZebraPluginBtPrint: CDVPlugin {
         }
  
         if let error = printError {
-            deb("error: \(error.localizedDescription)")
-            pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error.localizedDescription)
+            return (error.localizedDescription, CDVCommandStatus_ERROR)
         } else {
-            pluginResult = CDVPluginResult(status: CDVCommandStatus_OK)
+            return (OK_msg, CDVCommandStatus_OK)
         }
-        
-        return pluginResult
     }
     
     /**
@@ -294,7 +289,26 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
     }
     
     func showBTErrorMessage() {
-        showAlert("Bluetooth is turned off. To connect to Bluetooth devices, turn on Bluetooth in the system settings.")
+        showAlert(BT_Error_Message)
+    }
+    
+    private func sendErrorCallbackWith(message: String) {
+        deb(message)
+        var pluginResult : CDVPluginResult?
+        if let callbackId = self.callbackID {
+            pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: message)
+            self.commandDelegate!.send(pluginResult, callbackId: callbackId)
+        }
+    }
+    
+    private func sendErrorCallbackAndMessageWith(message: String) {
+        self.showAlert(message)
+        
+        var pluginResult : CDVPluginResult?
+        if let callbackId = self.callbackID {
+            pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: message)
+            self.commandDelegate!.send(pluginResult, callbackId: callbackId)
+        }
     }
     
     /// ----------------------- BLUETOOTH MANAGEMENT -----------------------
@@ -303,8 +317,17 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
         if let manager = centralManager, manager.state == .poweredOn {
             deb("started scanning for peripherials")
             manager.scanForPeripherals(withServices: nil, options: nil)
+            
+            DispatchQueue.global().asyncAfter(deadline: .now() + printerNotFoundDelayTime) { [weak self] in
+                guard let strongSelf = self else { return }
+               
+                if !strongSelf.printerFound {
+                    manager.stopScan()
+                    strongSelf.sendErrorCallbackWith(message: "printer not found")
+                }
+            }
         } else {
-            showAlert("Cannot scan, Bluetooth is not powered on.")
+            sendErrorCallbackAndMessageWith(message: "Cannot scan, Bluetooth is not powered on.")
         }
     }
     
@@ -348,6 +371,7 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
             
             deb("Making connection to: \(peripheral)")
             connectedPeripheral = peripheral
+            printerFound = true
             centralManager.stopScan()
             centralManager.connect(peripheral, options: nil)
             return
@@ -411,15 +435,6 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
 // 5. Print the data
 // 6. Return the result to the cordova plugin
 
-    private func sendErrorCallbackWith(message: String) {
-        deb(message)
-        var pluginResult : CDVPluginResult?
-        if let callbackId = self.callbackID {
-            pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: message)
-            self.commandDelegate!.send(pluginResult, callbackId: callbackId)
-        }
-    }
-    
     // Connected to peripheral
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
 
@@ -429,9 +444,10 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
         }
         
         deb("connected with device \(deviceName)")
-        
+
         if deviceName == printerName {
             connectedPeripheral = peripheral
+            printerFound = true
 
             peripheral.delegate = self
             peripheral.discoverServices(nil)
@@ -489,8 +505,7 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
                     self.savedData = nil
                     
                     if let callbackId = self.callbackID {
-                        var pluginResult = CDVPluginResult(status: CDVCommandStatus_OK)
-                        self.commandDelegate!.send(pluginResult, callbackId: callbackId)
+                        self.commandDelegate!.send(CDVPluginResult(status: CDVCommandStatus_OK, messageAs: OK_msg), callbackId: callbackId)
                     }
 
                     break
