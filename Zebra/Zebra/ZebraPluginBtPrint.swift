@@ -6,7 +6,6 @@ import UIKit
 @objc(ZebraPluginBtPrint)
 class ZebraPluginBtPrint: CDVPlugin {
     //plugin code
-    var wildcard: String?
     var printerName: String?
     private var serialNumber: String?
     var isConnected: Bool = false
@@ -20,7 +19,7 @@ class ZebraPluginBtPrint: CDVPlugin {
 
     let OK_msg = "ok"
     var cancelText = "Cancel"
-    var howLongScanning: TimeInterval = 30
+    var howLongScanning: TimeInterval = 20
     var delayTime: Int = 0
     var howLongKeepPrinterConnection: Double = 30.0
     let printerNotFoundDelayTime: Double = 10.0
@@ -28,72 +27,7 @@ class ZebraPluginBtPrint: CDVPlugin {
     
     let BT_Error_Message = "Bluetooth is turned off. To connect to Bluetooth devices, turn on Bluetooth in the system settings."
  
-    private func deb(_ data: String) {
-        NSLog("BT_PRINT_DBG: " + data)
-    }
-    
-    @objc private func connectToPrinter( completion: (Bool) -> Void) {
-        
-        if let pc = printerConnection, pc.isConnected() {
-            deb("Reusing existing connection")
-            completion(true)
-            return
-        }
-        
-        guard let serial = serialNumber else {
-            deb("Invalid printer serial number provided for connection")
-            return
-        }
-        guard let pc = MfiBtPrinterConnection(serialNumber: serial) else {
-            deb("Error while trying to connect to \(serial) printer")
-            return
-        }
-        printerConnection = pc
-        pc.open()
-        let connected = pc.isConnected()
-        if  connected {
-            deb("printer \(serial) is connected")
-        } else {
-            deb("cannot connect to printer \(serial)")
-        }
-        completion(connected)
-    }
-
-    @objc func findConnectedPrinter(completion: (Bool) -> Void) {
-        let manager = EAAccessoryManager.shared()
-        let connectedDevices = manager.connectedAccessories
-        var deviceConnected = false
-        
-        deb("connected devices array: \(connectedDevices)")
-        
-        if connectedDevices.isEmpty {
-            deviceConnected = false
-            completion(false)
-            return
-        }
-        
-        deb("trying to find printer: \(printerName ?? "(no printer name specified)")")
-        
-        for device in connectedDevices {
-            deb("found device name: \(device.name)")
-            
-            if device.protocolStrings.contains("com.zebra.rawport") &&
-                device.name == printerName {
-                serialNumber = device.serialNumber
-                deviceConnected = true
-                deb("Zebra \(device.name) device found with serial number -> \(serialNumber ?? "N.D")")
-                connectToPrinter(completion: { completed in
-                    completion(completed)
-                })
-            }
-        }
-        
-        if(!deviceConnected){
-            completion(false)
-        }
-    }
-    
-    /**
+   /**
      Initializes the printer connection process.
      This method is responsible for initiating the process of finding and connecting to a Zebra printer. It calls `findConnectedPrinter`,
      a method that searches for a connected printer that supports the specified protocol string. If a compatible printer is found and successfully connected,
@@ -102,7 +36,8 @@ class ZebraPluginBtPrint: CDVPlugin {
     @objc func initialize(_ command: CDVInvokedUrlCommand) {
         
         deb("initialize function called")
-        
+        deb("\(command.arguments)")
+
         //
         // Load parameters
         
@@ -130,28 +65,6 @@ class ZebraPluginBtPrint: CDVPlugin {
             deb("delayTime: invalid value: \(command.arguments[0])")
         }
         
-        // parameters : Wildcard | Pattern for name search
-        let wildcardParam: String? = command.arguments.count > 1 ? (command.arguments[1] as? String ) : nil
-        self.wildcard = wildcardParam != "" ? wildcardParam : nil
-
-        // parameters : Printer name | Name of the printer for a direct bluetooth connection
-        let printerNameParam: String? = command.arguments.count > 2 ?  (command.arguments[2] as! String) : nil
-        self.printerName = printerNameParam != "" ? printerNameParam : nil
-        
-        // parameters : Cancel button name | Name of the button for close the bluetooth modals
-        let cancelButtonParam: String = command.arguments.count > 3 ? (command.arguments[3] as! String ) : "Cancel"
-        self.cancelText = cancelButtonParam
-
-        // parameters : for how long plugin is trying to scan for bluetooth devices?
-        let howlong: Int = command.arguments.count > 4 ? (command.arguments[4] as! Int ) :  20
-        self.howLongScanning = TimeInterval(howlong)
-        
-        deb("\(command.arguments[1])")
-        deb("Wildcard: \(self.wildcard ?? "N.D")")
-        deb("PrinterName: \(self.printerName ?? "N.D")")
-        deb("CancelText: \(self.cancelText)")
-        deb("How long scanning: \(howLongScanning)")
-    
         initializeBluetooth(timeout: howLongScanning) { bool in
             self.deb("Bluetooth enabled: \(bool)")
             
@@ -268,9 +181,73 @@ class ZebraPluginBtPrint: CDVPlugin {
     }
 }
 
-
 extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
 
+    private func deb(_ data: String) {
+        NSLog("BT_PRINT_DBG: " + data)
+    }
+    
+    @objc private func connectToPrinter( completion: (Bool) -> Void) {
+        
+        if let pc = printerConnection, pc.isConnected() {
+            deb("Reusing existing connection")
+            completion(true)
+            return
+        }
+        
+        guard let serial = serialNumber else {
+            deb("Invalid printer serial number provided for connection")
+            return
+        }
+        guard let pc = MfiBtPrinterConnection(serialNumber: serial) else {
+            deb("Error while trying to connect to \(serial) printer")
+            return
+        }
+        printerConnection = pc
+        pc.open()
+        let connected = pc.isConnected()
+        if  connected {
+            deb("printer \(serial) is connected")
+        } else {
+            deb("cannot connect to printer \(serial)")
+        }
+        completion(connected)
+    }
+
+    @objc func findConnectedPrinter(completion: (Bool) -> Void) {
+        let manager = EAAccessoryManager.shared()
+        let connectedDevices = manager.connectedAccessories
+        var deviceConnected = false
+        
+        deb("connected devices array: \(connectedDevices)")
+        
+        if connectedDevices.isEmpty {
+            deviceConnected = false
+            completion(false)
+            return
+        }
+        
+        deb("trying to find printer: \(printerName ?? "(no printer name specified)")")
+        
+        for device in connectedDevices {
+            deb("found device name: \(device.name)")
+            
+            if device.protocolStrings.contains("com.zebra.rawport") &&
+                device.name == printerName {
+                serialNumber = device.serialNumber
+                deviceConnected = true
+                deb("Zebra \(device.name) device found with serial number -> \(serialNumber ?? "N.D")")
+                connectToPrinter(completion: { completed in
+                    completion(completed)
+                })
+            }
+        }
+        
+        if(!deviceConnected){
+            completion(false)
+        }
+    }
+    
     func waitForMilliseconds(milliseconds: Int, completion: @escaping () -> Void) {
         let delayTime = DispatchTime.now() + .milliseconds(milliseconds)
         
