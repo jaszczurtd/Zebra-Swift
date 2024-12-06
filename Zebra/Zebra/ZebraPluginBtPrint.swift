@@ -15,7 +15,6 @@ class ZebraPluginBtPrint: CDVPlugin {
     
     var howLongScanning: TimeInterval = 20
     var delayTime: Int = 15000 //miliseconds
-    var howLongKeepPrinterConnection: Double = 30.0
     let printerNotFoundDelayTime: Double = 10.0
     
     //plugin code
@@ -33,6 +32,7 @@ class ZebraPluginBtPrint: CDVPlugin {
     let OK_msg = "ok"
     var cancelText = "Cancel"
     var printerFound: Bool = false
+    var printCount: Int = 0
     
    /**
      Initializes the printer connection process.
@@ -55,21 +55,6 @@ class ZebraPluginBtPrint: CDVPlugin {
                 self.delayTime = delayTime
             }
             deb("delayTime: \(self.delayTime)")
-            
-            waitForMilliseconds(milliseconds: self.delayTime) { [weak self] in
-                guard let self = self else { return }
-                deb("BT timeout \(self.delayTime) has been reached - disconnecting Bluetooth")
-                
-                self.setPluginAsDisconnected()
-                
-                if self.centralManager != nil {
-                    if self.centralManager.isScanning {
-                        self.centralManager.stopScan()
-                        self.centralManager = nil
-                        deb("Bluetooth scanning stopped.")
-                    }
-                }
-            }
             
         } else {
             deb("delayTime: invalid value: \(command.arguments[0])")
@@ -162,17 +147,12 @@ class ZebraPluginBtPrint: CDVPlugin {
             printError = error
         }
         
-        DispatchQueue.global().asyncAfter(deadline: .now() + howLongKeepPrinterConnection) { [weak self] in
-            guard let strongSelf = self else { return }
-            
-            strongSelf.printerConnection?.close()
-            strongSelf.setPluginAsDisconnected()
-            deb("Connection closed after delay to allow for data processing.")
-        }
- 
+        disconnectAfterTimeout()
+        
         if let error = printError {
             return (error.localizedDescription, CDVCommandStatus_ERROR)
         } else {
+            printCount += 1
             return (OK_msg, CDVCommandStatus_OK)
         }
     }
@@ -277,6 +257,34 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
     
     /// ----------------------- BLUETOOTH MANAGEMENT -----------------------
 
+    func setPluginAsDisconnected() {
+        if let cm = centralManager {
+            if cm.isScanning {
+                cm.stopScan()
+                deb("Bluetooth scanning stopped.")
+            }
+        }
+        
+        guard let pt = printerConnection else { return }
+        pt.close()
+        printerConnection = nil
+        
+        isConnected = false
+    }
+    
+    func disconnectAfterTimeout() {
+        waitForMilliseconds(milliseconds: self.delayTime) { [weak self] in
+            guard let self = self else { return }
+            
+            self.printCount -= 1
+            if self.printCount <= 0 {
+                deb("BT timeout \(self.delayTime)ms has been reached - disconnecting Bluetooth")
+                
+                self.setPluginAsDisconnected()
+            }
+        }
+    }
+    
     func startScanning() {
         if let manager = centralManager, manager.state == .poweredOn {
             deb("started scanning for peripherials")
@@ -357,11 +365,6 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
         
         deb("Disconnected from peripheral: \(peripheral.name ?? "unknown"), Error: \(error?.localizedDescription ?? "none")")
         reconnectToPeripheral()
-    }
-    
-    func setPluginAsDisconnected() {
-        isConnected = false
-        printerConnection = nil
     }
     
     func initializeBluetooth(timeout: TimeInterval, completion: @escaping (Bool) -> Void) {
@@ -468,10 +471,12 @@ extension ZebraPluginBtPrint: CBCentralManagerDelegate, CBPeripheralDelegate{
                     
                     self.savedData = nil
                     
+                    printCount += 1
+                    disconnectAfterTimeout()
+                    
                     if let callbackId = self.callbackID {
                         self.commandDelegate!.send(CDVPluginResult(status: CDVCommandStatus_OK, messageAs: OK_msg), callbackId: callbackId)
                     }
-
                     break
                 }
             }
